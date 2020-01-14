@@ -13,9 +13,10 @@ This is Team 4373 RooBotics' vision code for the 2020 FIRST Robotics Infinite Re
 
 ### Deploying
 * Open the Pi web dashboard at [http://frcvision.local](http://frcvision.local)
-* Set the filesystem to "Writable"
 * Go to the Application tab, select "Uploaded Java jar," and upload the `RooVision2020-all.jar` file in `build/libs`
+* Set the filesystem to "Writable"
 * Click Save
+* Set the filesystem back to "Read-Only"
 
 To monitor output, go to the Vision Status tab on the web server.
 
