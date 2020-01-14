@@ -19,7 +19,11 @@ public class RooProcessor {
             if (!pipeline.filterContoursOutput().isEmpty()) {
                 Rect r = Imgproc.boundingRect(pipeline.filterContoursOutput().get(0));
                 double centerX = r.x + (r.width / 2d);
+                double imgWidth = pipeline.blurOutput().width();
+                double pixelOffset = imgWidth / 2d - centerX;
+                double degreeOffset = (pixelOffset / imgWidth) * 60d;
                 visionTable.getEntry("center_x").setDouble(centerX);
+                visionTable.getEntry("degree_offset").setDouble(degreeOffset);
             }
         });
         visionThread.start();
