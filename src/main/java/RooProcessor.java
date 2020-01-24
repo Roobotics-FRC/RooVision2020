@@ -35,9 +35,18 @@ public class RooProcessor {
                 double degreeOffset = (pixelOffset / imgWidth) * 60d;
                 visionTable.getEntry("degree_offset").setDouble(degreeOffset);
 
-                double pixelToInchesRatio = TARGET_WIDTH_INCHES / contourRect.width;
+                double pixelWidth = contourRect.width;
+                double pixelToInchesRatio = TARGET_WIDTH_INCHES / pixelWidth;
                 double inchOffset = pixelOffset * pixelToInchesRatio;
                 visionTable.getEntry("inch_offset").setDouble(inchOffset);
+
+                double currentDistance = focalLength * pixelToInchesRatio;
+                visionTable.getEntry("current_distance").setDouble(currentDistance);
+
+                if (visionTable.getEntry("fl_calibration_enable").getBoolean(false)) {
+                    visionTable.getEntry("fl_calibration_enable").setBoolean(false);
+                    computeFocalLength(pixelWidth);
+                }
             }
         });
         visionThread.start();
