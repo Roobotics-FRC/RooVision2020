@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 
 public class RooProcessor {
     private static final double TARGET_WIDTH_INCHES = 39.25;
-    private static final String FOCAL_LENGTH_CONFIG_PATH = "/boot/focal_length.txt";
+    private static final String FOCAL_LENGTH_CONFIG_PATH = "/home/pi/focal_length.txt";
 
     private double focalLength = -1;
 
@@ -73,9 +73,24 @@ public class RooProcessor {
      */
     private void writeFocalLength() {
         try {
+            Runtime.getRuntime().exec(new String[]{"/usr/bin/sudo", "/bin/sh", "-c",
+                    "/bin/mount -o remount,rw / && /bin/mount -o remount,rw /boot"});
+        } catch (IOException e) {
+            System.err.println("Failed to make system writable.");
+            e.printStackTrace();
+        }
+        try {
             Files.writeString(Paths.get(FOCAL_LENGTH_CONFIG_PATH), Double.toString(this.focalLength));
         } catch (IOException e) {
-            System.err.println("Failed to write focal length to disk:");
+            System.err.println("Failed to write focal length to disk.");
+            e.printStackTrace();
+        }
+        try {
+            Runtime.getRuntime().exec(new String[]{"/usr/bin/sudo", "/bin/sh", "-c",
+                    "/bin/mount -o remount,ro / && /bin/mount -o remount,ro /boot"});
+        } catch (IOException e) {
+            System.err.println("Failed to make system readonly. WARNING: this could render the " +
+                    "filesystem corrupt and should be manually corrected immediately.");
             e.printStackTrace();
         }
     }
