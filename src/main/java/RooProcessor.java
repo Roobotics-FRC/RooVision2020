@@ -11,6 +11,8 @@ import java.nio.file.Paths;
 public class RooProcessor {
     private static final double TARGET_WIDTH_INCHES = 39.25;
     private static final String FOCAL_LENGTH_CONFIG_PATH = "/home/pi/focal_length.txt";
+    private static final String NT_CALIB_DIST_FIELD = "fl_calibration_distance";
+    private static final String NT_CALIB_ENABLE_FIELD = "fl_calibration_enable";
 
     private double focalLength = -1;
 
@@ -21,6 +23,7 @@ public class RooProcessor {
         this.camera = camera;
         this.visionTable = visionTable;
         readFocalLength();
+        initNetworkTablesFields();
     }
 
     public void process() {
@@ -43,13 +46,34 @@ public class RooProcessor {
                 double currentDistance = focalLength * pixelToInchesRatio;
                 visionTable.getEntry("current_distance").setDouble(currentDistance);
 
-                if (visionTable.getEntry("fl_calibration_enable").getBoolean(false)) {
-                    visionTable.getEntry("fl_calibration_enable").setBoolean(false);
+                if (visionTable.getEntry(NT_CALIB_ENABLE_FIELD).getBoolean(false)) {
+                    visionTable.getEntry(NT_CALIB_ENABLE_FIELD).setBoolean(false);
                     computeFocalLength(pixelWidth);
                 }
             }
         });
         visionThread.start();
+    }
+
+    /**
+     * Computes the focal length based on the perceived contour width at a known distance specified
+     * in NetworkTables in the <code>fl_calibration_distance</code> field. Saves in
+     * {@link #focalLength} and writes to disk.
+     *
+     * @param perceivedWidthPx the width of the contour at the calibration distance, in px.
+     */
+    private void computeFocalLength(double perceivedWidthPx) {
+        double knownDist = visionTable.getEntry(NT_CALIB_DIST_FIELD).getDouble(-1);
+        if (knownDist <= 0) {
+            System.out.println("Invalid or missing " + NT_CALIB_DIST_FIELD + ". Computation aborted.");
+            return;
+        }
+        System.out.println("Recomputing focal length with parameters:" +
+                "known_width = " + TARGET_WIDTH_INCHES + " in; " +
+                "perceived_width = " + perceivedWidthPx + " px;" +
+                "known_dist = " + knownDist);
+        this.focalLength = knownDist * perceivedWidthPx / TARGET_WIDTH_INCHES;
+        writeFocalLength();
     }
 
     /**
@@ -96,19 +120,15 @@ public class RooProcessor {
     }
 
     /**
-     * Computes the focal length based on the perceived contour width at a known distance specified
-     * in NetworkTables in the <code>fl_calibration_distance</code> field. Saves in
-     * {@link #focalLength} and writes to disk.
-     *
-     * @param perceivedWidthPx the width of the contour at the calibration distance, in px.
+     * Initializes fields on the vision table to prepare for later input in Shuffleboard.
      */
-    private void computeFocalLength(double perceivedWidthPx) {
-        double knownDist = visionTable.getEntry("fl_calibration_distance").getDouble(-1);
-        if (knownDist <= 0) {
-            System.out.println("Invalid or missing fl_calibration_distance. Computation aborted.");
-            return;
+    private void initNetworkTablesFields() {
+        if (!visionTable.getEntry(NT_CALIB_DIST_FIELD).exists()) {
+            visionTable.getEntry(NT_CALIB_DIST_FIELD).setDouble(-1);
         }
-        this.focalLength = knownDist * perceivedWidthPx / TARGET_WIDTH_INCHES;
-        writeFocalLength();
+        if (!visionTable.getEntry(NT_CALIB_ENABLE_FIELD).exists()) {
+            visionTable.getEntry(NT_CALIB_ENABLE_FIELD).setBoolean(false);
+        }
+
     }
 }
