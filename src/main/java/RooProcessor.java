@@ -7,6 +7,8 @@ import org.opencv.imgproc.Imgproc;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 
 public class RooProcessor {
     private static final double TARGET_WIDTH_INCHES = 39.25;
@@ -40,8 +42,8 @@ public class RooProcessor {
                 visionTable.getEntry("degree_offset").setDouble(degreeOffset);
 
                 double pixelWidth = contourRect.width;
-                double pixelToInchesRatio = TARGET_WIDTH_INCHES / pixelWidth;
-                double inchOffset = pixelOffset * pixelToInchesRatio;
+                double pixelToInchesRatioWidth = TARGET_WIDTH_INCHES / pixelWidth;
+                double inchOffset = pixelOffset * pixelToInchesRatioWidth;
                 visionTable.getEntry("inch_offset").setDouble(inchOffset);
 
                 double pixelHeight = contourRect.height;
@@ -71,7 +73,7 @@ public class RooProcessor {
             System.out.println("Invalid or missing " + NT_CALIB_DIST_FIELD + ". Computation aborted.");
             return;
         }
-        System.out.println("Recomputing focal length with parameters:" +
+        System.out.println("Recomputing focal length with parameters: " +
                 "known_width = " + TARGET_WIDTH_INCHES + " in; " +
                 "perceived_width = " + perceivedWidthPx + " px;" +
                 "known_dist = " + knownDist);
@@ -85,7 +87,11 @@ public class RooProcessor {
     private void readFocalLength() {
         try {
             String rawSave = Files.readString(Paths.get(FOCAL_LENGTH_CONFIG_PATH));
-            this.focalLength = Double.parseDouble(rawSave);
+            // We should be able to use Double.parseDouble(), but that doesn't work for some reason
+            DecimalFormat df = new DecimalFormat();
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+            symbols.setDecimalSeparator('.');
+            this.focalLength = df.parse(rawSave).doubleValue();
         } catch (IOException e) {
             System.out.println("Warning: No saved focal length found." +
                     " This must be computed for distance measurement to work.");
@@ -99,27 +105,32 @@ public class RooProcessor {
      * Writes the currently computed focal length to disk.
      */
     private void writeFocalLength() {
-        try {
-            Runtime.getRuntime().exec(new String[]{"/usr/bin/sudo", "/bin/sh", "-c",
-                    "/bin/mount -o remount,rw / && /bin/mount -o remount,rw /boot"});
-        } catch (IOException e) {
-            System.err.println("Failed to make system writable.");
-            e.printStackTrace();
-        }
-        try {
-            Files.writeString(Paths.get(FOCAL_LENGTH_CONFIG_PATH), Double.toString(this.focalLength));
-        } catch (IOException e) {
-            System.err.println("Failed to write focal length to disk.");
-            e.printStackTrace();
-        }
-        try {
-            Runtime.getRuntime().exec(new String[]{"/usr/bin/sudo", "/bin/sh", "-c",
-                    "/bin/mount -o remount,ro / && /bin/mount -o remount,ro /boot"});
-        } catch (IOException e) {
-            System.err.println("Failed to make system readonly. WARNING: this could render the " +
-                    "filesystem corrupt and should be manually corrected immediately.");
-            e.printStackTrace();
-        }
+        final double valueToSave = this.focalLength;
+        Runnable runnable = () -> {
+            try {
+                Runtime.getRuntime().exec(new String[]{"/usr/bin/sudo", "/bin/sh", "-c",
+                        "/bin/mount -o remount,rw / && /bin/mount -o remount,rw /boot"});
+                Thread.sleep(100);
+            } catch (IOException | InterruptedException e) {
+                System.err.println("Failed to make system writable.");
+                e.printStackTrace();
+            }
+            try {
+                Files.writeString(Paths.get(FOCAL_LENGTH_CONFIG_PATH), Double.toString(valueToSave));
+            } catch (IOException e) {
+                System.err.println("Failed to write focal length to disk.");
+                e.printStackTrace();
+            }
+            try {
+                Runtime.getRuntime().exec(new String[]{"/usr/bin/sudo", "/bin/sh", "-c",
+                        "/bin/mount -o remount,ro / && /bin/mount -o remount,ro /boot"});
+            } catch (IOException e) {
+                System.err.println("Failed to make system readonly. WARNING: this could render the " +
+                        "filesystem corrupt and should be manually corrected immediately.");
+                e.printStackTrace();
+            }
+        };
+        new Thread(runnable).start();
     }
 
     /**
