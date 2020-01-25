@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 
 public class RooProcessor {
     private static final double TARGET_WIDTH_INCHES = 39.25;
+    private static final double TARGET_HEIGHT_INCHES = 17;
     private static final String FOCAL_LENGTH_CONFIG_PATH = "/home/pi/focal_length.txt";
     private static final String NT_CALIB_DIST_FIELD = "fl_calibration_distance";
     private static final String NT_CALIB_ENABLE_FIELD = "fl_calibration_enable";
@@ -43,7 +44,9 @@ public class RooProcessor {
                 double inchOffset = pixelOffset * pixelToInchesRatio;
                 visionTable.getEntry("inch_offset").setDouble(inchOffset);
 
-                double currentDistance = focalLength * pixelToInchesRatio;
+                double pixelHeight = contourRect.height;
+                double pixelToInchesRatioHeight = TARGET_HEIGHT_INCHES / pixelHeight;
+                double currentDistance = focalLength * pixelToInchesRatioHeight;
                 visionTable.getEntry("current_distance").setDouble(currentDistance);
 
                 if (visionTable.getEntry(NT_CALIB_ENABLE_FIELD).getBoolean(false)) {
