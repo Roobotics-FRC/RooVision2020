@@ -53,7 +53,7 @@ public class RooProcessor {
 
                 if (visionTable.getEntry(NT_CALIB_ENABLE_FIELD).getBoolean(false)) {
                     visionTable.getEntry(NT_CALIB_ENABLE_FIELD).setBoolean(false);
-                    computeFocalLength(pixelWidth);
+                    computeFocalLength(pixelHeight);
                 }
             }
         });
@@ -61,23 +61,23 @@ public class RooProcessor {
     }
 
     /**
-     * Computes the focal length based on the perceived contour width at a known distance specified
+     * Computes the focal length based on the perceived contour height at a known distance specified
      * in NetworkTables in the <code>fl_calibration_distance</code> field. Saves in
      * {@link #focalLength} and writes to disk.
      *
-     * @param perceivedWidthPx the width of the contour at the calibration distance, in px.
+     * @param perceivedHeightPx the height of the contour at the calibration distance, in px.
      */
-    private void computeFocalLength(double perceivedWidthPx) {
+    private void computeFocalLength(double perceivedHeightPx) {
         double knownDist = visionTable.getEntry(NT_CALIB_DIST_FIELD).getDouble(-1);
         if (knownDist <= 0) {
             System.out.println("Invalid or missing " + NT_CALIB_DIST_FIELD + ". Computation aborted.");
             return;
         }
         System.out.println("Recomputing focal length with parameters: " +
-                "known_width = " + TARGET_WIDTH_INCHES + " in; " +
-                "perceived_width = " + perceivedWidthPx + " px;" +
+                "known_height = " + TARGET_HEIGHT_INCHES + " in; " +
+                "perceived_height = " + perceivedHeightPx + " px;" +
                 "known_dist = " + knownDist);
-        this.focalLength = knownDist * perceivedWidthPx / TARGET_WIDTH_INCHES;
+        this.focalLength = knownDist * perceivedHeightPx / TARGET_HEIGHT_INCHES;
         writeFocalLength();
     }
 
@@ -110,7 +110,7 @@ public class RooProcessor {
             try {
                 Runtime.getRuntime().exec(new String[]{"/usr/bin/sudo", "/bin/sh", "-c",
                         "/bin/mount -o remount,rw / && /bin/mount -o remount,rw /boot"});
-                Thread.sleep(100);
+                Thread.sleep(1000);
             } catch (IOException | InterruptedException e) {
                 System.err.println("Failed to make system writable.");
                 e.printStackTrace();
