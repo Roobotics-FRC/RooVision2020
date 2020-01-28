@@ -3,7 +3,7 @@
 This is Team 4373 RooBotics' vision code for the 2020 FIRST Robotics Infinite Recharge competition. It is designed to run on a Raspberry Pi coprocessor using the FRCVision image.
 
 ## Exporting from GRIP
-* Open the `2020 Pipeline.grip` file in GRIP and generate Java code
+* Open the appropriate pipeline file from `pipelines/` in GRIP and generate Java code
 * Change `import edu.wpi.first.wpilibj.vision.VisionPipeline` to `import edu.wpi.first.vision.VisionPipeline` in the generated file
 * Place the Java file in the correct location (in the `java` directory)
 
