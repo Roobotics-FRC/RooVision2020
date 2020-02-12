@@ -18,9 +18,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import edu.wpi.cscore.MjpegServer;
-import edu.wpi.cscore.UsbCamera;
-import edu.wpi.cscore.VideoSource;
+import edu.wpi.cscore.*;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.EntryListenerFlags;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -38,7 +36,9 @@ import edu.wpi.first.networktables.NetworkTableInstance;
        "cameras": [
            {
                "name": <camera name>
+               // EXACTLY one of the following two fields must be present
                "path": <path, e.g. "/dev/video0">
+               "url": <url>
                "pixel format": <"MJPEG", "YUYV", etc>   // optional
                "width": <video mode width>              // optional
                "height": <video mode height>            // optional
@@ -80,6 +80,7 @@ public final class Main {
   public static class CameraConfig {
     public String name;
     public String path;
+    public String url;
     public JsonObject config;
     public JsonElement streamConfig;
   }
@@ -122,11 +123,15 @@ public final class Main {
 
     // path
     JsonElement pathElement = config.get("path");
-    if (pathElement == null) {
-      parseError("camera '" + cam.name + "': could not read path");
+    JsonElement urlElement = config.get("url");
+    if (pathElement != null) {
+      cam.path = pathElement.getAsString();
+    } else if (urlElement != null) {
+      cam.url = urlElement.getAsString();
+    } else {
+      parseError("camera '" + cam.name + "': could not read path or URL");
       return false;
     }
-    cam.path = pathElement.getAsString();
 
     // stream properties
     cam.streamConfig = config.get("stream");
@@ -235,7 +240,12 @@ public final class Main {
   public static VideoSource startCamera(CameraConfig config) {
     System.out.println("Starting camera '" + config.name + "' on " + config.path);
     CameraServer inst = CameraServer.getInstance();
-    UsbCamera camera = new UsbCamera(config.name, config.path);
+    VideoCamera camera;
+    if (config.path != null) {
+      camera = new UsbCamera(config.name, config.path);
+    } else {
+      camera = new HttpCamera(config.name, config.url);
+    }
     MjpegServer server = inst.startAutomaticCapture(camera);
 
     Gson gson = new GsonBuilder().create();
