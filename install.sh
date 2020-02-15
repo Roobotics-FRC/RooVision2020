@@ -1,2 +1,2 @@
 #!/bin/sh
-cp build/libs/java-multiCameraServer-all.jar runCamera /home/pi
+cp build/libs/RooVision2020-all.jar runCamera /home/pi
