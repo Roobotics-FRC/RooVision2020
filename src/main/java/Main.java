@@ -5,23 +5,17 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
+import com.google.gson.*;
+import edu.wpi.cscore.*;
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.networktables.EntryListenerFlags;
+import edu.wpi.first.networktables.NetworkTableInstance;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import edu.wpi.cscore.*;
-import edu.wpi.first.cameraserver.CameraServer;
-import edu.wpi.first.networktables.EntryListenerFlags;
-import edu.wpi.first.networktables.NetworkTableInstance;
 
 /**
  * This file consists primarily of the sample code provided in the FRCVision image.
@@ -36,9 +30,10 @@ import edu.wpi.first.networktables.NetworkTableInstance;
        "cameras": [
            {
                "name": <camera name>
-               // EXACTLY one of the following two fields must be present
+               // EXACTLY one of the following three fields must be present
                "path": <path, e.g. "/dev/video0">
-               "url": <url>
+               "url": <url, e.g. "http://192.168.0.90/mjpg/video.mjpg?resolution=640x480">
+               // The third option is detailed in the "properties" subobject
                "pixel format": <"MJPEG", "YUYV", etc>   // optional
                "width": <video mode width>              // optional
                "height": <video mode height>            // optional
@@ -47,10 +42,9 @@ import edu.wpi.first.networktables.NetworkTableInstance;
                "white balance": <"auto", "hold", value> // optional
                "exposure": <"auto", "hold", value>      // optional
                "properties": [                          // optional
-                   {
-                       "name": <property name>
-                       "value": <property value>
-                   }
+                   // This is the third option for camera path/url.
+                   "url": "http://192.168.0.90/mjpg/video.mjpg?resolution=640x480"
+                   "name": "value",
                ],
                "stream": {                              // optional
                    "properties": [
@@ -83,6 +77,7 @@ public final class Main {
     public String url;
     public JsonObject config;
     public JsonElement streamConfig;
+    public boolean isHTTP;
   }
 
   @SuppressWarnings("MemberName")
@@ -124,13 +119,21 @@ public final class Main {
     // path
     JsonElement pathElement = config.get("path");
     JsonElement urlElement = config.get("url");
-    if (pathElement != null) {
-      cam.path = pathElement.getAsString();
-    } else if (urlElement != null) {
-      cam.url = urlElement.getAsString();
+    JsonElement properties = config.get("properties"); // web console props
+    if (properties != null && properties.getAsJsonObject().get("url") != null) {
+      cam.isHTTP = true;
+      cam.url = properties.getAsJsonObject().get("url").getAsString();
     } else {
-      parseError("camera '" + cam.name + "': could not read path or URL");
-      return false;
+      if (pathElement != null) {
+        cam.isHTTP = false;
+        cam.path = pathElement.getAsString();
+      } else if (urlElement != null) {
+        cam.isHTTP = true;
+        cam.url = urlElement.getAsString();
+      } else {
+        parseError("camera '" + cam.name + "': could not read path or URL");
+        return false;
+      }
     }
 
     // stream properties
@@ -238,7 +241,8 @@ public final class Main {
    * Start running the camera.
    */
   public static VideoSource startCamera(CameraConfig config) {
-    System.out.println("Starting camera '" + config.name + "' on " + config.path);
+    System.out.println("Starting camera '" + config.name + "' on "
+            + (config.isHTTP ? config.url : config.path) + " (HTTP: " + config.isHTTP + ")");
     CameraServer inst = CameraServer.getInstance();
     VideoCamera camera;
     if (config.path != null) {
