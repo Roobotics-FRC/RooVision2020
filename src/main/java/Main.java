@@ -11,11 +11,12 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.EntryListenerFlags;
 import edu.wpi.first.networktables.NetworkTableInstance;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This file consists primarily of the sample code provided in the FRCVision image.
@@ -33,7 +34,7 @@ import java.util.List;
                // EXACTLY one of the following three fields must be present
                "path": <path, e.g. "/dev/video0">
                "url": <url, e.g. "http://192.168.0.90/mjpg/video.mjpg?resolution=640x480">
-               // The third option is detailed in the "properties" subobject
+               // The remaining options are detailed in the "properties" subobject
                "pixel format": <"MJPEG", "YUYV", etc>   // optional
                "width": <video mode width>              // optional
                "height": <video mode height>            // optional
@@ -42,8 +43,13 @@ import java.util.List;
                "white balance": <"auto", "hold", value> // optional
                "exposure": <"auto", "hold", value>      // optional
                "properties": [                          // optional
+                   // There are three additional options for camera path/url
                    // This is the third option for camera path/url.
                    "url": "http://192.168.0.90/mjpg/video.mjpg?resolution=640x480"
+                   // The fourth option is just the IP address
+                   "ip": "192.168.0.90",
+                   // The fifth option is autodetect, which attempts to use and parse `traceroute`
+                   "autodetect": true,
                    "name": "value",
                ],
                "stream": {                              // optional
@@ -119,10 +125,44 @@ public final class Main {
     // path
     JsonElement pathElement = config.get("path");
     JsonElement urlElement = config.get("url");
-    JsonElement properties = config.get("properties"); // web console props
-    if (properties != null && properties.getAsJsonObject().get("url") != null) {
+    JsonElement properties = config.get("properties");
+    JsonObject prop;
+    if (properties != null && properties.isJsonObject() &&
+            ((prop = properties.getAsJsonObject()).get("url") != null
+                    || prop.get("autodetect").getAsBoolean() || prop.get("ip") != null)) {
       cam.isHTTP = true;
-      cam.url = properties.getAsJsonObject().get("url").getAsString();
+      if (prop.get("url") != null) {
+        cam.url = properties.getAsJsonObject().get("url").getAsString();
+      } else if (prop.get("ip") != null) {
+         cam.url = "http://" + prop.get("ip").getAsString() + "/mjpg/video.mjpg?resolution=640x480";
+      } else if (properties.getAsJsonObject().get("autodetect").getAsBoolean()) {
+        try {
+          String ipaddr = "10.43.73.1"; //router IP
+          int fails = 0;
+          while ("10.43.73.1".equals(ipaddr)) {
+            System.out.println("Attempting to auto-detect Axis camera");
+            Process p = Runtime.getRuntime().exec("traceroute axis-camera.local");
+            if (!p.waitFor(5, TimeUnit.SECONDS)) { ++fails; break; }
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String last = "", line;
+            while ((line = reader.readLine()) != null) {
+              last = line;
+            }
+            ipaddr = last.substring(last.indexOf("(") + 1, last.indexOf(")"));
+            System.out.println("Auto-detected IP address was " + ipaddr);
+            if ("10.43.73.1".equals(ipaddr)) {
+              System.out.println("(this is the router IP address; retrying");
+              if (++fails >= 10) {
+                throw new Exception("Detected IP address at the router/stalled " + fails + " times; failing");
+              }
+            }
+          }
+          cam.url = "http://" + ipaddr + "/mjpg/video.mjpg?resolution=640x480";
+        } catch (Exception e) {
+          System.err.println("Could not auto-detect IP address with stack trace:");
+          e.printStackTrace();
+        }
+      }
     } else {
       if (pathElement != null) {
         cam.isHTTP = false;
