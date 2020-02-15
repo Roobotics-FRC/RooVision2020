@@ -31,7 +31,7 @@ public class RooProcessor {
 
     public void process() {
         VisionThread visionThread = new VisionThread(camera,
-                new GripPipeline(), pipeline -> {
+                new RooPipeline(), pipeline -> {
             if (!pipeline.filterContoursOutput().isEmpty()) {
                 Rect contourRect = Imgproc.boundingRect(pipeline.filterContoursOutput().get(0));
                 double centerX = contourRect.x + (contourRect.width / 2d);
