@@ -42,11 +42,13 @@ public class RooProcessor {
                 visionTable.getEntry("degree_offset").setDouble(degreeOffset);
 
                 double pixelWidth = contourRect.width;
+                visionTable.getEntry("pixel_width").setDouble(pixelWidth);
                 double pixelToInchesRatioWidth = TARGET_WIDTH_INCHES / pixelWidth;
                 double inchOffset = pixelOffset * pixelToInchesRatioWidth;
                 visionTable.getEntry("inch_offset").setDouble(inchOffset);
 
                 double pixelHeight = contourRect.height;
+                visionTable.getEntry("pixel_height").setDouble(pixelHeight);
                 double pixelToInchesRatioHeight = TARGET_HEIGHT_INCHES / pixelHeight;
                 double currentDistance = focalLength * pixelToInchesRatioHeight;
                 visionTable.getEntry("current_distance").setDouble(currentDistance);
