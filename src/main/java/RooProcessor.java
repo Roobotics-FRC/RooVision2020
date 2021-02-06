@@ -52,6 +52,9 @@ public class RooProcessor {
                 double pixelToInchesRatioHeight = TARGET_HEIGHT_INCHES / pixelHeight;
 //                double currentDistance = focalLength * pixelToInchesRatioHeight;
 //                visionTable.getEntry("current_distance").setDouble(currentDistance);
+
+                double pixelYDist = contourRect.y;
+                visionTable.getEntry("pixel_y_dist").setDouble(pixelYDist);
                 double currentHeightDistance = (pixelHeight - 66.1) / -0.145;
                 double currentWidthDistance = (Math.pow(pixelWidth, 2) * 0.00191) - (1.41 * pixelWidth) + 231;
                 visionTable.getEntry("height_distance").setDouble(currentHeightDistance);
