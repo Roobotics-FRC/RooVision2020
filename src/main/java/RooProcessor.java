@@ -50,8 +50,15 @@ public class RooProcessor {
                 double pixelHeight = contourRect.height;
                 visionTable.getEntry("pixel_height").setDouble(pixelHeight);
                 double pixelToInchesRatioHeight = TARGET_HEIGHT_INCHES / pixelHeight;
-                double currentDistance = focalLength * pixelToInchesRatioHeight;
-                visionTable.getEntry("current_distance").setDouble(currentDistance);
+//                double currentDistance = focalLength * pixelToInchesRatioHeight;
+//                visionTable.getEntry("current_distance").setDouble(currentDistance);
+                double currentHeightDistance = (pixelHeight - 66.1) / -0.145;
+                double currentWidthDistance = (Math.pow(pixelWidth, 2) * 0.00191) - (1.41 * pixelWidth) + 231;
+                visionTable.getEntry("height_distance").setDouble(currentHeightDistance);
+                visionTable.getEntry("width_distance").setDouble(currentWidthDistance);
+                double averageDistance = (currentHeightDistance + currentWidthDistance) / 2;
+                visionTable.getEntry("average_distance").setDouble(averageDistance);
+                visionTable.getEntry("current_distance").setDouble(averageDistance);
 
                 if (visionTable.getEntry(NT_CALIB_ENABLE_FIELD).getBoolean(false)) {
                     visionTable.getEntry(NT_CALIB_ENABLE_FIELD).setBoolean(false);
