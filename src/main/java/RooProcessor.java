@@ -55,11 +55,13 @@ public class RooProcessor {
 
                 double pixelYDist = contourRect.y;
                 visionTable.getEntry("pixel_y_dist").setDouble(pixelYDist);
-                double currentHeightDistance = (pixelHeight - 66.1) / -0.145;
-                double currentWidthDistance = (Math.pow(pixelWidth, 2) * 0.00191) - (1.41 * pixelWidth) + 231;
+                double currentHeightDistance = (pixelHeight * -7.56) + 452;
+                double currentWidthDistance = (Math.pow(pixelWidth, 2) * 0.0168) - (5.53 * pixelWidth) + 528;
+                double currentYDistDistance = (Math.pow(pixelYDist, 2) * 0.00302) - (0.328 * pixelWidth) + 88.6;
                 visionTable.getEntry("height_distance").setDouble(currentHeightDistance);
                 visionTable.getEntry("width_distance").setDouble(currentWidthDistance);
-                double averageDistance = (currentHeightDistance + currentWidthDistance) / 2;
+                visionTable.getEntry("y_dist_distance").setDouble(currentYDistDistance);
+                double averageDistance = (currentHeightDistance + currentWidthDistance + currentYDistDistance) / 3;
                 visionTable.getEntry("average_distance").setDouble(averageDistance);
                 visionTable.getEntry("current_distance").setDouble(averageDistance);
 
