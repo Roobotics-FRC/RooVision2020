@@ -61,7 +61,9 @@ public class RooProcessor {
                 visionTable.getEntry("height_distance").setDouble(currentHeightDistance);
                 visionTable.getEntry("width_distance").setDouble(currentWidthDistance);
                 visionTable.getEntry("y_dist_distance").setDouble(currentYDistDistance);
-                double averageDistance = (currentHeightDistance + currentWidthDistance + currentYDistDistance) / 3;
+//                double averageDistance = (currentHeightDistance + currentWidthDistance + currentYDistDistance + currentYDistDistance) / 4;
+                // Average Distance uses 2 y offset distances because y offset is generally more accurate
+                double averageDistance = currentYDistDistance;
                 visionTable.getEntry("average_distance").setDouble(averageDistance);
                 visionTable.getEntry("current_distance").setDouble(averageDistance);
 
