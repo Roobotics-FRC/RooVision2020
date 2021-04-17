@@ -27,7 +27,11 @@ public class GripPipeline implements VisionPipeline {
 
 	//Outputs
 	private Mat blurOutput = new Mat();
+	private Mat hslThresholdOutput = new Mat();
+	private Mat rgbThresholdOutput = new Mat();
 	private Mat hsvThresholdOutput = new Mat();
+	private Mat cvBitwiseAnd0Output = new Mat();
+	private Mat cvBitwiseAnd1Output = new Mat();
 	private ArrayList<MatOfPoint> findContoursOutput = new ArrayList<MatOfPoint>();
 	private ArrayList<MatOfPoint> filterContoursOutput = new ArrayList<MatOfPoint>();
 
@@ -42,28 +46,52 @@ public class GripPipeline implements VisionPipeline {
 		// Step Blur0:
 		Mat blurInput = source0;
 		BlurType blurType = BlurType.get("Box Blur");
-		double blurRadius = 0.9009009009008917;
+		double blurRadius = 4.674485806561269;
 		blur(blurInput, blurType, blurRadius, blurOutput);
+
+		// Step HSL_Threshold0:
+		Mat hslThresholdInput = blurOutput;
+		double[] hslThresholdHue = {77.96610169491525, 95.42553191489363};
+		double[] hslThresholdSaturation = {127.25988700564969, 255.0};
+		double[] hslThresholdLuminance = {124.85875706214689, 255.0};
+		hslThreshold(hslThresholdInput, hslThresholdHue, hslThresholdSaturation, hslThresholdLuminance, hslThresholdOutput);
+
+		// Step RGB_Threshold0:
+		Mat rgbThresholdInput = blurOutput;
+		double[] rgbThresholdRed = {50.42372881355933, 132.9255319148936};
+		double[] rgbThresholdGreen = {175.28248587570621, 255.0};
+		double[] rgbThresholdBlue = {144.0677966101695, 239.1755319148936};
+		rgbThreshold(rgbThresholdInput, rgbThresholdRed, rgbThresholdGreen, rgbThresholdBlue, rgbThresholdOutput);
 
 		// Step HSV_Threshold0:
 		Mat hsvThresholdInput = blurOutput;
-		double[] hsvThresholdHue = {50.84745762711866, 90.27196207891042};
-		double[] hsvThresholdSaturation = {76.8361581920904, 255.0};
-		double[] hsvThresholdValue = {170.48843128886725, 255.0};
+		double[] hsvThresholdHue = {0.0, 92.2340425531915};
+		double[] hsvThresholdSaturation = {115.25423728813558, 198.4840425531915};
+		double[] hsvThresholdValue = {184.8870056497175, 255.0};
 		hsvThreshold(hsvThresholdInput, hsvThresholdHue, hsvThresholdSaturation, hsvThresholdValue, hsvThresholdOutput);
 
+		// Step CV_bitwise_and0:
+		Mat cvBitwiseAnd0Src1 = rgbThresholdOutput;
+		Mat cvBitwiseAnd0Src2 = hsvThresholdOutput;
+		cvBitwiseAnd(cvBitwiseAnd0Src1, cvBitwiseAnd0Src2, cvBitwiseAnd0Output);
+
+		// Step CV_bitwise_and1:
+		Mat cvBitwiseAnd1Src1 = cvBitwiseAnd0Output;
+		Mat cvBitwiseAnd1Src2 = hslThresholdOutput;
+		cvBitwiseAnd(cvBitwiseAnd1Src1, cvBitwiseAnd1Src2, cvBitwiseAnd1Output);
+
 		// Step Find_Contours0:
-		Mat findContoursInput = hsvThresholdOutput;
+		Mat findContoursInput = cvBitwiseAnd1Output;
 		boolean findContoursExternalOnly = false;
 		findContours(findContoursInput, findContoursExternalOnly, findContoursOutput);
 
 		// Step Filter_Contours0:
 		ArrayList<MatOfPoint> filterContoursContours = findContoursOutput;
-		double filterContoursMinArea = 100.0;
-		double filterContoursMinPerimeter = 10.0;
-		double filterContoursMinWidth = 0.0;
+		double filterContoursMinArea = 15.0;
+		double filterContoursMinPerimeter = 15.0;
+		double filterContoursMinWidth = 20.0;
 		double filterContoursMaxWidth = 1500.0;
-		double filterContoursMinHeight = 10.0;
+		double filterContoursMinHeight = 5.0;
 		double filterContoursMaxHeight = 1000.0;
 		double[] filterContoursSolidity = {0.0, 100.0};
 		double filterContoursMaxVertices = 1000000.0;
@@ -83,11 +111,43 @@ public class GripPipeline implements VisionPipeline {
 	}
 
 	/**
+	 * This method is a generated getter for the output of a HSL_Threshold.
+	 * @return Mat output from HSL_Threshold.
+	 */
+	public Mat hslThresholdOutput() {
+		return hslThresholdOutput;
+	}
+
+	/**
+	 * This method is a generated getter for the output of a RGB_Threshold.
+	 * @return Mat output from RGB_Threshold.
+	 */
+	public Mat rgbThresholdOutput() {
+		return rgbThresholdOutput;
+	}
+
+	/**
 	 * This method is a generated getter for the output of a HSV_Threshold.
 	 * @return Mat output from HSV_Threshold.
 	 */
 	public Mat hsvThresholdOutput() {
 		return hsvThresholdOutput;
+	}
+
+	/**
+	 * This method is a generated getter for the output of a CV_bitwise_and.
+	 * @return Mat output from CV_bitwise_and.
+	 */
+	public Mat cvBitwiseAnd0Output() {
+		return cvBitwiseAnd0Output;
+	}
+
+	/**
+	 * This method is a generated getter for the output of a CV_bitwise_and.
+	 * @return Mat output from CV_bitwise_and.
+	 */
+	public Mat cvBitwiseAnd1Output() {
+		return cvBitwiseAnd1Output;
 	}
 
 	/**
@@ -173,6 +233,37 @@ public class GripPipeline implements VisionPipeline {
 	}
 
 	/**
+	 * Segment an image based on hue, saturation, and luminance ranges.
+	 *
+	 * @param input The image on which to perform the HSL threshold.
+	 * @param hue The min and max hue
+	 * @param sat The min and max saturation
+	 * @param lum The min and max luminance
+	 * @param output The image in which to store the output.
+	 */
+	private void hslThreshold(Mat input, double[] hue, double[] sat, double[] lum,
+		Mat out) {
+		Imgproc.cvtColor(input, out, Imgproc.COLOR_BGR2HLS);
+		Core.inRange(out, new Scalar(hue[0], lum[0], sat[0]),
+			new Scalar(hue[1], lum[1], sat[1]), out);
+	}
+
+	/**
+	 * Segment an image based on color ranges.
+	 * @param input The image on which to perform the RGB threshold.
+	 * @param red The min and max red.
+	 * @param green The min and max green.
+	 * @param blue The min and max blue.
+	 * @param output The image in which to store the output.
+	 */
+	private void rgbThreshold(Mat input, double[] red, double[] green, double[] blue,
+		Mat out) {
+		Imgproc.cvtColor(input, out, Imgproc.COLOR_BGR2RGB);
+		Core.inRange(out, new Scalar(red[0], green[0], blue[0]),
+			new Scalar(red[1], green[1], blue[1]), out);
+	}
+
+	/**
 	 * Segment an image based on hue, saturation, and value ranges.
 	 *
 	 * @param input The image on which to perform the HSL threshold.
@@ -186,6 +277,16 @@ public class GripPipeline implements VisionPipeline {
 		Imgproc.cvtColor(input, out, Imgproc.COLOR_BGR2HSV);
 		Core.inRange(out, new Scalar(hue[0], sat[0], val[0]),
 			new Scalar(hue[1], sat[1], val[1]), out);
+	}
+
+	/**
+	 * Computes the per channel and of two images.
+	 * @param src1 The first image to use.
+	 * @param src2 The second image to use.
+	 * @param dst the result image when the and is performed.
+	 */
+	private void cvBitwiseAnd(Mat src1, Mat src2, Mat dst) {
+		Core.bitwise_and(src1, src2, dst);
 	}
 
 	/**

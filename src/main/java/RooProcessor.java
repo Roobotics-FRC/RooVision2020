@@ -55,14 +55,14 @@ public class RooProcessor {
 
                 double pixelYDist = contourRect.y;
                 visionTable.getEntry("pixel_y_dist").setDouble(pixelYDist);
-                double currentHeightDistance = (pixelHeight * -7.56) + 452;
-                double currentWidthDistance = (Math.pow(pixelWidth, 2) * 0.0168) - (5.53 * pixelWidth) + 528;
-                double currentYDistDistance = (Math.pow(pixelYDist, 2) * 0.00302) - (0.328 * pixelYDist) + 88.6;
-                visionTable.getEntry("height_distance").setDouble(currentHeightDistance);
-                visionTable.getEntry("width_distance").setDouble(currentWidthDistance);
+//                double currentHeightDistance = (pixelHeight * -7.56) + 452;
+//                double currentWidthDistance = (Math.pow(pixelWidth, 2) * 0.0168) - (5.53 * pixelWidth) + 528;
+                double currentYDistDistance = (Math.pow(pixelYDist, 2) * 0.00165) - (0.188 * pixelYDist) + 52.1;
+                System.out.println("currentYDistDistance = " + currentYDistDistance);
+//                visionTable.getEntry("height_distance").setDouble(currentHeightDistance);
+//                visionTable.getEntry("width_distance").setDouble(currentWidthDistance);
                 visionTable.getEntry("y_dist_distance").setDouble(currentYDistDistance);
 //                double averageDistance = (currentHeightDistance + currentWidthDistance + currentYDistDistance + currentYDistDistance) / 4;
-                // Average Distance uses 2 y offset distances because y offset is generally more accurate
                 double averageDistance = currentYDistDistance;
                 visionTable.getEntry("average_distance").setDouble(averageDistance);
                 visionTable.getEntry("current_distance").setDouble(averageDistance);
@@ -71,6 +71,8 @@ public class RooProcessor {
                     visionTable.getEntry(NT_CALIB_ENABLE_FIELD).setBoolean(false);
                     computeFocalLength(pixelHeight);
                 }
+            } else {
+                System.out.println("no contours found");
             }
         });
         visionThread.start();
